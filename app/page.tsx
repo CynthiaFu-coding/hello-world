@@ -34,6 +34,7 @@ export default async function Home() {
                         <span>Signed in as {user.email}</span>{" "}
                         <Link href="/dashboard">Dashboard</Link>{" "}
                         <Link href="/profile">Profile</Link>{" "}
+                        <Link href="/memes">Memes</Link>{" "}
                         <SignOutButton />
                     </>
                 ) : (
