@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import ProfileForm from "./profile-form";
+import Link from "next/link";
 
 export default async function ProfilePage() {
     const supabase = await createClient();
@@ -21,6 +22,8 @@ export default async function ProfilePage() {
 
     return (
         <main>
+            <Link href="/">Home</Link>{" "}
+            <Link href="/memes">Memes</Link>
             <h1>Profile</h1>
             <p>Email: {user.email}</p>
 

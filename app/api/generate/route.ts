@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from "@/utils/supabase/server";
+import convert from "heic-convert";
 
 export async function POST(request: Request) {
     const supabase = await createClient();
@@ -20,18 +21,44 @@ export async function POST(request: Request) {
     if (!(file instanceof File) || file.size === 0) {
         return NextResponse.json({ error: "Please choose an image." }, { status: 400 });
     }
-    if (!file.type.startsWith("image/")) {
+
+    const isHeic =
+        /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+
+    if (!file.type.startsWith("image/") && !isHeic) {
         return NextResponse.json({ error: "File must be an image." }, { status: 400 });
     }
-    if (file.size > 4 * 1024 * 1024) {
-        return NextResponse.json({ error: "Image must be under 4 MB." }, { status: 400 });
+    if (file.size > 10 * 1024 * 1024) {
+        return NextResponse.json({ error: "Image must be under 10 MB." }, { status: 400 });
     }
     if (!prompt) {
         return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
     }
 
+    // 读取图片；如果是 HEIC，转成 JPEG
+    let bytes: Buffer = Buffer.from(await file.arrayBuffer());
+    let mimeType = file.type;
+    let extension = file.name.split(".").pop() || "jpg";
+
+    if (isHeic) {
+        try {
+            const jpeg = await convert({
+                buffer: bytes as unknown as Parameters<typeof convert>[0]["buffer"],
+                format: "JPEG",
+                quality: 0.85,
+            });
+            bytes = Buffer.from(jpeg);
+            mimeType = "image/jpeg";
+            extension = "jpg";
+        } catch {
+            return NextResponse.json(
+                { error: "Could not read this HEIC image. Try a JPG or PNG." },
+                { status: 400 }
+            );
+        }
+    }
+
     // 1. 调用 Gemini 生成 caption
-    const bytes = Buffer.from(await file.arrayBuffer());
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     let caption = "";
@@ -42,7 +69,7 @@ export async function POST(request: Request) {
                 {
                     role: "user",
                     parts: [
-                        { inlineData: { mimeType: file.type, data: bytes.toString("base64") } },
+                        { inlineData: { mimeType, data: bytes.toString("base64") } },
                         {
                             text:
                                 `${prompt}\n\nWrite one short, funny meme caption for this image. ` +
@@ -65,12 +92,11 @@ export async function POST(request: Request) {
     }
 
     // 2. 图片存进 Storage 的 memes 桶
-    const extension = file.name.split(".").pop() || "jpg";
     const filePath = `${user.id}/${Date.now()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
         .from("memes")
-        .upload(filePath, bytes, { contentType: file.type });
+        .upload(filePath, bytes, { contentType: mimeType });
 
     if (uploadError) {
         return NextResponse.json({ error: uploadError.message }, { status: 500 });
@@ -78,7 +104,7 @@ export async function POST(request: Request) {
 
     const { data: urlData } = supabase.storage.from("memes").getPublicUrl(filePath);
 
-    // 3. 记录写进 memes 表（图片地址、prompt、caption）
+    // 3. 记录写进 memes 表
     const { error: insertError } = await supabase.from("memes").insert({
         image_url: urlData.publicUrl,
         prompt,
