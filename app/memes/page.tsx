@@ -23,7 +23,15 @@ export default async function MemesPage() {
     if (!user) {
         redirect("/login");
     }
+    const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
 
+    if (!profile?.first_name || !profile?.last_name) {
+        redirect("/profile");
+    }
     const { data } = await supabase
         .from("memes")
         .select("id, image_url, prompt, caption, votes(user_id, value)")
