@@ -72,55 +72,62 @@ export default function ProfileForm({
     }
 
     return (
-        <form onSubmit={saveProfile}>
-            {avatarUrl && (
-                <div>
-                    <p>Profile photo</p>
+        <form
+            onSubmit={saveProfile}
+            className="mt-8 rounded-3xl border-4 border-black bg-white p-6 shadow-[8px_8px_0_0_#000]"
+        >
+            <div className="flex items-center gap-5">
+                {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={avatarUrl}
                         alt="Profile"
-                        width="120"
-                        height="120"
+                        className="h-24 w-24 rounded-full border-4 border-black object-cover"
                     />
-                </div>
-            )}
+                ) : (
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-black bg-[var(--yellow)] text-4xl">
+                        😎
+                    </div>
+                )}
+                <label className="cursor-pointer rounded-full border-2 border-black bg-[var(--paper)] px-4 py-2 font-bold hover:bg-[var(--yellow)]">
+                    {avatarFile ? avatarFile.name : "Choose a photo"}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) =>
+                            setAvatarFile(event.target.files?.[0] ?? null)
+                        }
+                    />
+                </label>
+            </div>
 
-            <label>
-                Upload profile photo
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                        setAvatarFile(event.target.files?.[0] ?? null)
-                    }
-                />
-            </label>
-
-            <br />
-
-            <label>
+            <label className="mt-6 block font-black">
                 First name
                 <input
                     value={firstName}
                     onChange={(event) => setFirstName(event.target.value)}
+                    className="mt-1 w-full rounded-xl border-2 border-black p-3 font-normal"
                 />
             </label>
 
-            <br />
-
-            <label>
+            <label className="mt-4 block font-black">
                 Last name
                 <input
                     value={lastName}
                     onChange={(event) => setLastName(event.target.value)}
+                    className="mt-1 w-full rounded-xl border-2 border-black p-3 font-normal"
                 />
             </label>
 
-            <br />
+            <button
+                type="submit"
+                className="mt-6 w-full rounded-full border-4 border-black bg-[var(--yellow)] px-6 py-3 text-lg font-black shadow-[5px_5px_0_0_#000] transition hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+            >
+                Save profile
+            </button>
 
-            <button type="submit">Save profile</button>
-
-            {message && <p>{message}</p>}
+            {message && <p className="mt-3 font-bold">{message}</p>}
         </form>
     );
 }

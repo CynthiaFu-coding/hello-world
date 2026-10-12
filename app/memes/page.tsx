@@ -1,17 +1,5 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import UploadForm from "./upload-form";
-import VoteButtons from "./vote-buttons";
-
-type Vote = { user_id: string; value: number };
-type Meme = {
-    id: string;
-    image_url: string;
-    prompt: string;
-    caption: string;
-    votes: Vote[];
-};
+import MemeCard, { type MemeData } from "../meme-card";
 
 export default async function MemesPage() {
     const supabase = await createClient();
@@ -20,53 +8,29 @@ export default async function MemesPage() {
         data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-        redirect("/login");
-    }
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("id", user.id)
-        .single();
-
-    if (!profile?.first_name || !profile?.last_name) {
-        redirect("/profile");
-    }
     const { data } = await supabase
         .from("memes")
         .select("id, image_url, prompt, caption, votes(user_id, value)")
         .order("created_at", { ascending: false });
 
-    const memes = (data ?? []) as Meme[];
+    const memes = (data ?? []) as MemeData[];
 
     return (
-        <main>
-            <Link href="/">Home</Link>
-            <h1>Meme Rater</h1>
+        <main className="mx-auto max-w-5xl px-4 py-10">
+            <h1 className="text-4xl font-black">All memes 😂</h1>
+            <p className="mt-1 font-semibold">Newest first. Vote on your favorites.</p>
 
-            <UploadForm />
-
-            <hr />
-
-            {memes.length === 0 && <p>No memes yet. Generate the first one!</p>}
-
-            {memes.map((meme) => {
-                const score = meme.votes.reduce((sum, v) => sum + v.value, 0);
-                const myVote =
-                    meme.votes.find((v) => v.user_id === user.id)?.value ?? 0;
-
-                return (
-                    <div key={meme.id} style={{ marginBottom: 32 }}>
-                        <img src={meme.image_url} alt={meme.caption} width={300} />
-                        <p>
-                            <strong>{meme.caption}</strong>
-                        </p>
-                        <p>Prompt: {meme.prompt}</p>
-                        <p>Score: {score}</p>
-                        <VoteButtons memeId={meme.id} myVote={myVote} />
-                    </div>
-                );
-            })}
+            {memes.length === 0 ? (
+                <p className="mt-8 rounded-2xl border-4 border-dashed border-black p-8 text-center font-bold">
+                    No memes yet. Head to Create and make the first one!
+                </p>
+            ) : (
+                <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                    {memes.map((m) => (
+                        <MemeCard key={m.id} meme={m} userId={user?.id ?? null} />
+                    ))}
+                </div>
+            )}
         </main>
     );
 }

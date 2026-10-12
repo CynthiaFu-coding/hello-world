@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import ProfileForm from "./profile-form";
-import Link from "next/link";
 
 export default async function ProfilePage() {
     const supabase = await createClient();
@@ -20,15 +19,17 @@ export default async function ProfilePage() {
         .eq("id", user.id)
         .single();
 
-    return (
-        <main>
-            <Link href="/">Home</Link>{" "}
-            <Link href="/memes">Memes</Link>
-            <h1>Profile</h1>
-            <p>Email: {user.email}</p>
+    const needsName = !profile?.first_name || !profile?.last_name;
 
-            {(!profile?.first_name || !profile?.last_name) && (
-                <p>Please add your first and last name.</p>
+    return (
+        <main className="mx-auto max-w-lg px-4 py-10">
+            <h1 className="text-4xl font-black">Your profile 🙂</h1>
+            <p className="mt-1 font-semibold">{user.email}</p>
+
+            {needsName && (
+                <p className="mt-6 rounded-2xl border-4 border-black bg-[var(--pink)] p-4 font-black shadow-[4px_4px_0_0_#000]">
+                    👋 Welcome! Add your first and last name to start making memes.
+                </p>
             )}
 
             <ProfileForm
